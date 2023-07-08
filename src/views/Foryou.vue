@@ -10,11 +10,6 @@
                @touchend="handleTouchEnd">
         </video>
 
-        <!-- <div class="progress-bar">
-            <div class="progress"
-                 :style="{ width: progressBarWidth }"></div>
-        </div> -->
-
         <input type="range"
                min="0"
                :max="videoDuration"
@@ -71,8 +66,6 @@ onMounted(async () => {
         currentTime.value = videoPlayer.value.currentTime
         const progress = (videoPlayer.value.currentTime / videoPlayer.value.duration) * 100
         progressBarWidth.value = `${progress}%`
-
-        // console.log(progressBarWidth.value)
     })
 
     videoPlayer.value.addEventListener('loadedmetadata', () => {
@@ -158,28 +151,6 @@ const handleVideoEnded = () => {
 </script>
 
 <style>
-@media (min-width: 1024px) {
-    .about {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-    }
-}
-
-/* .progress-bar {
-    background-color: darkred;
-    height: 8px;
-    margin-top: 10px;
-    position: relative;
-}
-
-.progress {
-    background-color: #007bff;
-    height: 100%;
-    width: 0;
-    transition: width 0.3s ease-in-out;
-} */
-
 input.slider {
     -webkit-appearance: none;
     width: 100%;
