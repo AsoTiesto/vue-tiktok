@@ -6,7 +6,9 @@
         <video ref="videoPlayer"
                :src="currentVideo"
                controls
-               autoplay></video>
+               autoplay
+               @ended="replayVideo">
+        </video>
     </div>
 </template>
 
@@ -84,6 +86,11 @@ const playVideo = async () => {
         videoPlayer.value.load()
         videoPlayer.value.play()
     }
+}
+
+const replayVideo = () => {
+    videoPlayer.value.currentTime = 0
+    videoPlayer.value.play()
 }
 </script>
 
