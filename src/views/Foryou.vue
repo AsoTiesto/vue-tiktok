@@ -4,7 +4,7 @@
                :src="currentVideo"
                controls
                autoplay
-               @ended="replayVideo();handleVideoEnded();"
+               @ended="handleVideoEnded();replayVideo();"
                @touchstart="handleTouchStart"
                @touchmove="handleTouchMove"
                @touchend="handleTouchEnd">
@@ -82,12 +82,45 @@ const initTable = async () => {
     }
 }
 
+const removeCoverImage = () => {
+    const coverImage = document.querySelector('.cover-image')
+    if (coverImage) {
+        coverImage.remove()
+    }
+}
+
+const showCoverImage = (cover) => {
+    removeCoverImage()
+    const coverImage = document.createElement('img')
+    coverImage.src = cover
+    coverImage.classList.add('cover-image')
+    coverImage.style.position = 'absolute'
+    coverImage.style.top = '0'
+    coverImage.style.left = '0'
+    coverImage.style.width = '100%'
+    coverImage.style.height = '100%'
+    document.querySelector('.foryou').appendChild(coverImage)
+}
+
 const handleTouchStart = (event) => {
     touchStartY = event.touches[0].clientY
 }
 
 const handleTouchMove = (event) => {
     touchEndY = event.touches[0].clientY
+
+    const diff = touchStartY - touchEndY
+    const threshold = 100 // 滑動閾值
+
+    if (diff > threshold && currentVideoIndex < videos.value.length - 1) {
+
+        // 顯示下一個影片的過場圖片
+        showCoverImage(videos.value[currentVideoIndex + 1].cover)
+    } else if (diff < -threshold && currentVideoIndex > 0) {
+
+        // 顯示上一個影片的過場圖片
+        showCoverImage(videos.value[currentVideoIndex - 1].cover)
+    }
 }
 
 const handleTouchEnd = async () => {
@@ -108,6 +141,9 @@ const handleTouchEnd = async () => {
 
     // 切換影片
     await playVideo()
+
+    // 移除過場圖片
+    removeCoverImage()
 }
 
 const playVideo = async () => {
