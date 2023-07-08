@@ -1,18 +1,26 @@
 <template>
-    <div class="following"
-         @touchstart="handleTouchStart"
-         @touchmove="handleTouchMove"
-         @touchend="handleTouchEnd">
+    <div class="following">
         <video ref="videoPlayer"
                :src="currentVideo"
                controls
-               autoplay></video>
-        <h1>Following</h1>
+               autoplay
+               @ended="replayVideo();handleVideoEnded();"
+               @touchstart="handleTouchStart"
+               @touchmove="handleTouchMove"
+               @touchend="handleTouchEnd">
+        </video>
+
+        <input type="range"
+               min="0"
+               :max="videoDuration"
+               v-model="currentTime"
+               class="slider"
+               @input="seekVideo">
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, onBeforeUnmount, watch } from "vue"
 import Api from "@/@core/api/index"
 import Hls from 'hls.js'
 
@@ -20,16 +28,49 @@ const videoItems = ref([])
 const videoPlayer = ref(null)
 const videos = ref([])
 const currentVideo = ref("")
+const progressBarWidth = ref("0%")
+const currentTime = ref(0)
+const videoDuration = ref(0)
 
 let touchStartY = 0
 let touchEndY = 0
 let currentVideoIndex = 0
 let timer = null
 
+onBeforeUnmount(() => {
+    const progress = {
+        videoIndex: currentVideoIndex,
+        progress: videoPlayer.value.currentTime
+    }
+    localStorage.setItem('videoProgress1', JSON.stringify(progress))
+})
 
 onMounted(async () => {
     await initTable()
+
+    let savedProgress = localStorage.getItem('videoProgress1')
+    if (savedProgress) {
+        let parsedProgress = JSON.parse(savedProgress)
+        currentVideoIndex = parsedProgress.videoIndex
+        videos.value[currentVideoIndex].progress = parsedProgress.progress
+    }
+
     await playVideo()
+
+    watch(videoPlayer.value, () => {
+        videoDuration.value = videoPlayer.value.duration
+    }, { immediate: true })
+
+    // 監聽視頻時間更新事件
+    videoPlayer.value.addEventListener('timeupdate', () => {
+        currentTime.value = videoPlayer.value.currentTime
+        const progress = (videoPlayer.value.currentTime / videoPlayer.value.duration) * 100
+        progressBarWidth.value = `${progress}%`
+    })
+
+    videoPlayer.value.addEventListener('loadedmetadata', () => {
+        videoDuration.value = videoPlayer.value.duration
+    })
 })
 
 const initTable = async () => {
@@ -79,6 +120,7 @@ const playVideo = async () => {
         hls.loadSource(videos.value[currentVideoIndex].play_url)
         hls.attachMedia(videoPlayer.value)
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoPlayer.value.currentTime = videos.value[currentVideoIndex].progress
             videoPlayer.value.play()
         })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
@@ -88,19 +130,54 @@ const playVideo = async () => {
     }
 }
 
+const replayVideo = () => {
+    videoPlayer.value.currentTime = 0
+    videoPlayer.value.play()
+}
+
+const seekVideo = () => {
+    videoPlayer.value.currentTime = currentTime.value
+}
+
+const handleVideoEnded = () => {
+    // 等待影片元數據載入完成
+    videoPlayer.value.addEventListener('loadedmetadata', () => {
+        videoDuration.value = videoPlayer.value.duration
+
+        // 將進度條寬度設置為 100%
+        progressBarWidth.value = "100%"
+    })
+}
 </script>
 
 <style>
-/* 一般的樣式 */
-.following {
+input.slider {
+    -webkit-appearance: none;
     width: 100%;
-    height: 200px;
+    height: 8px;
+    border-radius: 4px;
+    background: #eaeaea;
+    outline: none;
+    opacity: 1;
+    -webkit-transition: 0.2s;
+    transition: opacity 0.2s;
 }
 
-/* iPhone XR的樣式 */
-@media only screen and (max-width: 414px) and (max-height: 896px) {
-    .following {
-        height: 150px;
-    }
+input.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+}
+
+input.slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
 }
 </style>
