@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, onBeforeUnmount } from "vue"
 import Api from "@/@core/api/index"
 import Hls from 'hls.js'
 
@@ -27,8 +27,25 @@ let touchEndY = 0
 let currentVideoIndex = 0
 let timer = null
 
+onBeforeUnmount(() => {
+    const progress = {
+        videoIndex: currentVideoIndex,
+        progress: videoPlayer.value.currentTime
+    }
+    localStorage.setItem('videoProgress', JSON.stringify(progress))
+})
+
 onMounted(async () => {
     await initTable()
+
+    let savedProgress = localStorage.getItem('videoProgress')
+    if (savedProgress) {
+        let parsedProgress = JSON.parse(savedProgress)
+        currentVideoIndex = parsedProgress.videoIndex
+        videos.value[currentVideoIndex].progress = parsedProgress.progress
+    }
+
+
     await playVideo()
 })
 
@@ -79,6 +96,7 @@ const playVideo = async () => {
         hls.loadSource(videos.value[currentVideoIndex].play_url)
         hls.attachMedia(videoPlayer.value)
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoPlayer.value.currentTime = videos.value[currentVideoIndex].progress
             videoPlayer.value.play()
         })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
